@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Перевірка суперсили: команди MakeCode</title>
+<style>
+:root{
+  --ink:#1f2a44;
+  --fill:#5cb712;
+  --pos:#3f9a86;
+  --loop:#107c10;
+  --agent:#d83b01;
+  --good:#1fae5a;
+  --bad:#ff4d6d;
+  --hl:#ffd60a;
+  --diff:#ff2e88;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#1b2340;overflow:hidden;
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+button{font-family:inherit}
+
+/* ---------- сцена 1920×1080 ---------- */
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;
+  transform:translate(-50%,-50%);transform-origin:center;overflow:hidden;color:var(--ink);
+  background:radial-gradient(circle at 15% 0%,#ffffff 0,#eaf3ff 35%,#f6f9ff 60%,#fff8ea 100%);}
+
+/* ---------- шапка ---------- */
+#top{position:absolute;left:0;right:0;top:0;height:96px;display:flex;align-items:center;
+  padding:0 36px;gap:28px;}
+#top .title{font-size:44px;font-weight:900;letter-spacing:.3px;color:#23305a;}
+#top .title .bolt{display:inline-block;animation:bolt 2.4s ease-in-out infinite;}
+@keyframes bolt{0%,100%{transform:rotate(0) scale(1)}50%{transform:rotate(-12deg) scale(1.15)}}
+#stars{display:flex;gap:10px;margin-left:auto;}
+.star{font-size:60px;line-height:1;color:#d3dae6;position:relative;
+  text-shadow:0 3px 0 #bcc6d6;transition:color .3s;}
+.star.cur::after{content:"";position:absolute;left:50%;bottom:-10px;width:26px;height:6px;
+  margin-left:-13px;border-radius:3px;background:#5b7bd6;}
+.star.on{color:#ffc61a;text-shadow:0 0 18px rgba(255,198,26,.9),0 3px 0 #d99a00;}
+.star.pop{animation:starPop .9s ease;}
+@keyframes starPop{0%{transform:scale(1)}35%{transform:scale(1.7) rotate(25deg)}100%{transform:scale(1) rotate(0)}}
+#qnum{font-size:26px;font-weight:700;color:#6a7899;min-width:200px;text-align:right;}
+#mute{width:72px;height:72px;border-radius:50%;border:none;background:#fff;font-size:34px;cursor:pointer;
+  box-shadow:0 5px 0 #cdd6e6,0 8px 18px rgba(30,50,90,.12);}
+#mute:active{transform:translateY(3px);box-shadow:0 2px 0 #cdd6e6;}
+
+/* ---------- питання ---------- */
+#quiz{position:absolute;left:32px;right:32px;top:96px;bottom:40px;display:flex;flex-direction:column;gap:18px;}
+#task{font-size:42px;font-weight:800;text-align:center;line-height:1.2;min-height:64px;
+  display:flex;align-items:center;justify-content:center;color:#1c2750;padding:0 30px;}
+#mid{display:flex;gap:24px;height:476px;}
+#codePanel{width:fit-content;min-width:400px;max-width:660px;flex:none;background:#fff;border-radius:26px;padding:22px 26px;
+  box-shadow:0 8px 0 #d4dcea,0 14px 30px rgba(30,50,90,.10);--notch:#fff;
+  display:flex;flex-direction:column;gap:14px;align-items:flex-start;}
+#codePanel .lbl{font-size:24px;font-weight:800;color:#7a88a8;}
+#sceneWrap{flex:1;position:relative;border-radius:26px;overflow:hidden;
+  background:linear-gradient(180deg,#f7fbff 0%,#eef6ff 70%,#e7f1fb 100%);
+  box-shadow:inset 0 0 0 3px #dbe6f5,0 8px 0 #d4dcea;}
+#cv{position:absolute;left:0;top:0;display:block;}
+#tag{position:absolute;left:50%;top:16px;transform:translateX(-50%) scale(.8);opacity:0;
+  padding:10px 26px;border-radius:30px;font-size:28px;font-weight:800;max-width:92%;width:max-content;text-align:center;line-height:1.2;
+  background:#fff;color:#2b3a63;box-shadow:0 4px 14px rgba(30,50,90,.18);transition:all .3s;}
+#tag.on{opacity:1;transform:translateX(-50%) scale(1);}
+#tag.good{background:#e3f9ea;color:#11793d;box-shadow:0 0 0 3px #7fe0a5,0 4px 14px rgba(30,50,90,.18);}
+#tag.bad{background:#ffe9ee;color:#b0173a;box-shadow:0 0 0 3px #ff9fb3,0 4px 14px rgba(30,50,90,.18);}
+#counter{position:absolute;right:18px;bottom:16px;padding:10px 24px;border-radius:20px;background:#fff;
+  font-size:34px;font-weight:900;color:#23305a;box-shadow:0 4px 14px rgba(30,50,90,.18);display:none;}
+#counter b{display:inline-block;min-width:44px;text-align:center;color:#d83b01;}
+#counter b.bump{animation:cBump .25s ease;}
+@keyframes cBump{50%{transform:scale(1.45)}}
+#bubble{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(240,246,255,.55);opacity:0;pointer-events:none;transition:opacity .3s;}
+#bubble.on{opacity:1;pointer-events:auto;cursor:pointer;}
+#bubble .b{position:relative;background:#fff;border-radius:34px;padding:30px 44px;max-width:82%;
+  font-size:40px;font-weight:800;text-align:center;line-height:1.25;color:#23305a;
+  box-shadow:0 0 0 5px #ffd23f,0 16px 40px rgba(30,50,90,.25);animation:bob 2s ease-in-out infinite;}
+#bubble .b::after{content:"";position:absolute;left:50%;bottom:-26px;margin-left:-20px;border:20px solid transparent;
+  border-top:26px solid #fff;border-bottom:0;}
+#bubble .dots span{display:inline-block;animation:dot 1.2s infinite;}
+#bubble .dots span:nth-child(2){animation-delay:.2s}
+#bubble .dots span:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-12px)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+#side{width:470px;flex:none;display:flex;flex-direction:column;gap:18px;}
+.bigbtn{border:none;border-radius:24px;font-size:36px;font-weight:900;padding:20px 24px;cursor:pointer;
+  transition:transform .1s,box-shadow .1s;}
+.bigbtn:active{transform:translateY(5px);}
+#think{background:#ffd23f;color:#3d2f00;box-shadow:0 7px 0 #d6a700,0 12px 24px rgba(214,167,0,.25);}
+#think:active{box-shadow:0 2px 0 #d6a700;}
+#think.used{background:#fff1b8;}
+#next{background:#22b35e;color:#fff;box-shadow:0 7px 0 #178a46,0 12px 24px rgba(23,138,70,.3);display:none;
+  animation:nextIn .5s ease;}
+#next:active{box-shadow:0 2px 0 #178a46;}
+@keyframes nextIn{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+#fb{flex:1;background:#fff;border-radius:24px;padding:22px 28px;font-size:29px;line-height:1.32;
+  box-shadow:0 8px 0 #d4dcea,0 14px 30px rgba(30,50,90,.10);overflow:hidden;}
+#fb .t{font-size:34px;font-weight:900;margin-bottom:8px;}
+#fb .t.good{color:#13894a;} #fb .t.bad{color:#d61f4a;}
+#fb .hint{margin-top:10px;padding:10px 16px;background:#fff3f6;border-radius:16px;color:#7a1430;font-weight:600;}
+#fb .soft{color:#7a88a8;font-size:26px;margin-top:10px;}
+#fb .muted{color:#56648a;}
+
+/* ---------- варіанти ---------- */
+#opts{display:flex;gap:22px;flex:1;}
+.card{position:relative;flex:1;min-width:0;background:#fff;border-radius:28px;border:4px solid #dfe6f2;
+  box-shadow:0 8px 0 #cfd8e6,0 14px 30px rgba(30,50,90,.10);padding:22px 16px;--notch:#fff;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:transform .15s,box-shadow .25s,border-color .25s,opacity .25s;}
+.card:hover{transform:translateY(-5px);border-color:#9fb6e6;}
+.card .letter{position:absolute;top:-16px;left:-12px;width:62px;height:62px;border-radius:50%;
+  background:#2f3e66;color:#fff;font-size:36px;font-weight:900;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 0 #1b2647;z-index:5;}
+.card.chosen{border-color:#5b7bd6;}
+.card.correct{border-color:var(--good);box-shadow:0 0 0 7px rgba(31,174,90,.35),0 0 60px rgba(31,174,90,.55);transform:none;}
+.card.correct .letter{background:var(--good);box-shadow:0 4px 0 #13703a;}
+.card.correct .stack,.card.correct .otext,.card.correct .onum{filter:drop-shadow(0 0 7px #2ee87a) drop-shadow(0 0 3px #2ee87a);}
+.card.correct .otext,.card.correct .onum{color:#11793d;}
+.card.wrong{border-color:#ff9fb3;}
+.card.wrong .letter{background:#e2405f;box-shadow:0 4px 0 #a51f3c;}
+.card.shake{animation:shake .45s;}
+@keyframes shake{20%{transform:translateX(-12px)}40%{transform:translateX(10px)}60%{transform:translateX(-7px)}80%{transform:translateX(4px)}}
+.card.dim{opacity:.4;pointer-events:none;}
+.otext{font-size:31px;font-weight:700;line-height:1.3;text-align:center;padding:0 10px;}
+.onum{font-size:130px;font-weight:900;line-height:1;color:#23305a;}
+.locked .card{cursor:default;}
+
+/* ---------- блоки у стилі MakeCode ---------- */
+.stack{display:inline-flex;flex-direction:column;align-items:flex-start;}
+.blk{position:relative;display:flex;align-items:center;gap:10px;padding:9px 16px 10px 14px;min-height:54px;
+  border-radius:8px;color:#fff;font-weight:700;font-size:22px;line-height:1.1;white-space:nowrap;
+  background:var(--c);box-shadow:inset 0 -4px 0 rgba(0,0,0,.18),inset 0 2px 0 rgba(255,255,255,.18);
+  transition:box-shadow .15s,filter .15s;}
+.blk::before{content:"";position:absolute;top:0;left:16px;width:32px;height:7px;background:var(--notch,#fff);
+  border-radius:0 0 8px 8px;}
+.blk::after{content:"";position:absolute;bottom:-7px;left:16px;width:32px;height:7px;background:var(--c);
+  border-radius:0 0 8px 8px;z-index:2;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);}
+.blk.multi{flex-direction:column;align-items:flex-start;gap:7px;padding-top:12px;padding-bottom:12px;}
+.blk .row{display:flex;align-items:center;gap:9px;}
+.fill{--c:var(--fill);}
+.agent{--c:var(--agent);}
+.loop{--c:var(--loop);}
+.num{display:inline-flex;align-items:center;justify-content:center;min-width:46px;height:38px;padding:0 11px;
+  border-radius:19px;background:#fff;color:#2b2b2b;font-weight:700;font-size:22px;}
+.pos{display:inline-flex;align-items:center;gap:5px;padding:4px 6px;border-radius:24px;background:var(--pos);
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);}
+.drop{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:19px;
+  background:rgba(0,0,0,.24);color:#fff;font-weight:700;}
+.pick{display:inline-flex;padding:4px;border-radius:9px;background:#fff;}
+.pick i{display:block;width:30px;height:30px;background:var(--b);
+  box-shadow:inset -5px -5px 0 rgba(0,0,0,.25),inset 5px 5px 0 rgba(255,255,255,.25);}
+.cblk{position:relative;display:flex;flex-direction:column;align-items:flex-start;--c:var(--loop);}
+.cblk>.chead{border-radius:8px 8px 8px 0;}
+.cblk>.chead::after{left:42px;}
+.cmid{display:flex;align-items:stretch;}
+.arm{width:26px;background:var(--c);flex:none;}
+.inner{display:flex;flex-direction:column;align-items:flex-start;min-height:34px;}
+.cfoot{position:relative;width:170px;height:26px;background:var(--c);border-radius:0 0 8px 8px;
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.18);}
+.cfoot::after{content:"";position:absolute;bottom:-7px;left:16px;width:32px;height:7px;background:var(--c);
+  border-radius:0 0 8px 8px;z-index:2;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);}
+.iter{display:none;margin-left:4px;padding:3px 12px;border-radius:14px;background:#ffd60a;color:#3d2f00;font-size:20px;font-weight:900;}
+.iter.on{display:inline-block;}
+.blk.run{filter:brightness(1.18);box-shadow:0 0 0 4px var(--hl),0 0 24px 8px rgba(255,214,10,.75);z-index:3;}
+.diff{outline:5px dashed var(--diff);outline-offset:4px;border-radius:12px;animation:diffPulse 1s ease-in-out infinite;}
+.num.diff,.drop.diff{border-radius:19px;}
+span.diff{background:#ffe1ee;color:#b0004f;border-radius:8px;padding:0 4px;outline-offset:2px;}
+.num.diff,.drop.diff{background:#fff;color:#b0004f;box-shadow:0 0 0 6px rgba(255,46,136,.35);}
+.drop.diff{background:#7a0038;color:#fff;}
+@keyframes diffPulse{0%,100%{outline-color:var(--diff)}50%{outline-color:#ffb3d4}}
+
+/* ---------- підвал ---------- */
+#foot{position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:20px;color:#8b97b3;font-weight:600;}
+#foot kbd{display:inline-block;padding:1px 9px;border-radius:7px;background:#fff;border:2px solid #d4dcea;font-family:inherit;font-weight:800;color:#56648a;}
+
+/* ---------- фінал ---------- */
+#final{position:absolute;left:0;right:0;top:96px;bottom:0;display:none;flex-direction:column;align-items:center;
+  justify-content:center;gap:30px;overflow:hidden;}
+#final.on{display:flex;}
+#final>*:not(.conf){position:relative;z-index:1;}
+#final .fstars{display:flex;gap:30px;}
+#final .fstars span{font-size:150px;line-height:1;color:#d3dae6;}
+#final .fstars span.on{color:#ffc61a;text-shadow:0 0 40px rgba(255,198,26,.95),0 6px 0 #d99a00;animation:fStar 1.8s ease-in-out infinite;}
+#final .fstars span:nth-child(2){animation-delay:.2s} #final .fstars span:nth-child(3){animation-delay:.4s} #final .fstars span:nth-child(4){animation-delay:.6s}
+@keyframes fStar{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.12) rotate(8deg)}}
+#final h1{margin:0;font-size:66px;font-weight:900;text-align:center;color:#1c2750;line-height:1.15;}
+#final h1 em{font-style:normal;color:#13894a;}
+.flist{display:flex;gap:28px;align-items:flex-start;--notch:#f4f8ff;}
+.fitem{display:flex;flex-direction:column;align-items:center;gap:14px;background:#fff;border-radius:24px;padding:22px 26px;
+  box-shadow:0 8px 0 #d4dcea;min-width:300px;--notch:#fff;}
+.fitem .cap{font-size:28px;font-weight:800;color:#23305a;}
+.fitem .cap::before{content:"✔ ";color:#1fae5a;}
+#again{background:#4b6fe0;color:#fff;box-shadow:0 7px 0 #2f4fb4;}
+#again:active{box-shadow:0 2px 0 #2f4fb4;}
+.conf{position:absolute;z-index:0;top:-40px;width:22px;height:22px;opacity:.9;animation:fall linear infinite;
+  box-shadow:inset -4px -4px 0 rgba(0,0,0,.2),inset 4px 4px 0 rgba(255,255,255,.3);}
+@keyframes fall{to{transform:translateY(1100px) rotate(540deg)}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <header id="top">
+    <div class="title">Перевірка суперсили <span class="bolt">⚡</span></div>
+    <div id="stars"></div>
+    <div id="qnum"></div>
+    <button id="mute" title="Звук">🔊</button>
+  </header>
+
+  <main id="quiz">
+    <div id="task"></div>
+    <div id="mid">
+      <div id="codePanel"></div>
+      <div id="sceneWrap">
+        <canvas id="cv"></canvas>
+        <div id="tag"></div>
+        <div id="counter">Блоків: <b>0</b></div>
+        <div id="bubble"><div class="b"></div></div>
+      </div>
+      <div id="side">
+        <button id="think" class="bigbtn">🤔 Як думаєте?</button>
+        <div id="fb"></div>
+        <button id="next" class="bigbtn">Далі ➜</button>
+      </div>
+    </div>
+    <div id="opts"></div>
+  </main>
+
+  <section id="final">
+    <div class="fstars"><span>★</span><span>★</span><span>★</span><span>★</span></div>
+    <h1>Суперсилу перевірено!<br><em>Можна будувати шедевр!</em></h1>
+    <div class="flist" id="flist"></div>
+    <button id="again" class="bigbtn">🔄 Почати знову</button>
+  </section>
+
+  <div id="foot"><kbd>←</kbd> назад &nbsp;·&nbsp; <kbd>→</kbd> далі &nbsp;·&nbsp; <kbd>R</kbd> спочатку</div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================
+   ЗВУК (Web Audio API)
+   ========================================================= */
+let AC = null, muted = false;
+function audio(){
+  if(!AC){ try{ AC = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ AC = null; } }
+  if(AC && AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function tone(f, d, type='sine', v=.12, delay=0, f2=null){
+  if(muted) return;
+  const a = audio(); if(!a) return;
+  const t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if(f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(v, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(g).connect(a.destination);
+  o.start(t); o.stop(t + d + 0.03);
+}
+const sfx = {
+  click: ()=>tone(660,.08,'triangle',.1),
+  place: (delay=0)=>tone(210+Math.random()*90,.08,'square',.045,delay,130),
+  step:  ()=>tone(340,.07,'triangle',.06,0,420),
+  good:  ()=>[523,659,784,1047].forEach((f,i)=>tone(f,.24,'triangle',.13,i*.09)),
+  bad:   ()=>{ tone(392,.2,'triangle',.11); tone(300,.32,'triangle',.11,.17); },
+  star:  ()=>[1319,1568,2093].forEach((f,i)=>tone(f,.18,'sine',.08,.35+i*.07)),
+  think: ()=>{ tone(440,.14,'sine',.09); tone(587,.2,'sine',.09,.13); },
+  pop:   ()=>tone(880,.06,'sine',.06,0,1200),
+  win:   ()=>[523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(f,.28,'triangle',.12,i*.13)),
+};
+
+/* =========================================================
+   ІЗОМЕТРИЧНА СЦЕНА
+   ========================================================= */
+const cv = document.getElementById('cv'), g = cv.getContext('2d');
+const COL = { dirt:'#9a6a3f', blue:'#3b7de0', red:'#e04848', yellow:'#f2c230', white:'#e6ebf2',
+              purple:'#9b59d0', orange:'#f08a2c', gold:'#e3b23c' };
+const SC = { vox:new Map(), agent:null, wires:[], floats:[], nx:7, nz:7, maxH:5,
+             cw:800, ch:476, TW:30, ox:0, oy:0, axes:false };
+const key = (x,y,z)=>x+','+y+','+z;
+const now = ()=>performance.now();
+const clamp = (v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const easeOut = p=>1-Math.pow(1-p,3);
+function hexRgb(h){ h=h.replace('#',''); return [0,2,4].map(i=>parseInt(h.substr(i,2),16)); }
+function sh(rgb,f){ return 'rgb('+rgb.map(c=>Math.round(f>0? c+(255-c)*f : c*(1+f))).join(',')+')'; }
+function rnd(seed){ let a=seed>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+function P(x,y,z){ return [SC.ox+(x-z)*SC.TW, SC.oy+((x+z)*.5-y)*SC.TW]; }
+
+function resizeCanvas(){
+  const r = cv.parentElement, w = r.clientWidth, h = r.clientHeight;
+  cv.width = w*2; cv.height = h*2; cv.style.width = w+'px'; cv.style.height = h+'px';
+  SC.cw = w; SC.ch = h; fit();
+}
+function fit(){
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  for(const x of [0,SC.nx]) for(const z of [0,SC.nz]) for(const y of [-.3, SC.maxH+.25]){
+    const sx=x-z, sy=(x+z)*.5-y;
+    x0=Math.min(x0,sx); x1=Math.max(x1,sx); y0=Math.min(y0,sy); y1=Math.max(y1,sy);
+  }
+  SC.TW = Math.min(SC.cw*.9/(x1-x0), (SC.ch-90)/(y1-y0), 72);
+  SC.ox = SC.cw/2 - (x0+x1)/2*SC.TW;
+  SC.oy = (SC.ch+50)/2 - (y0+y1)/2*SC.TW;
+}
+function resetScene(nx,nz,maxH){
+  SC.vox.clear(); SC.agent=null; SC.wires=[]; SC.floats=[];
+  SC.nx=nx; SC.nz=nz; SC.maxH=maxH; SC.axes=false; fit();
+}
+function addVox(x,y,z,col,born=0){ SC.vox.set(key(x,y,z),{x,y,z,rgb:hexRgb(col),born,a:1}); }
+function recolor(x,y,z,col,at){ const v=SC.vox.get(key(x,y,z)); if(v) v.chg={rgb:hexRgb(col),at}; }
+function killVox(x,y,z,at){ const v=SC.vox.get(key(x,y,z)); if(v) v.die=at; }
+function fadeVox(v,to,at,dur){ v.af={from:v.a,to,at,dur}; }
+function addFloat(x,y,z,text,color){ SC.floats.push({x,y,z,text,color,t0:now()}); }
+function placeAgent(x,z){ SC.agent={lx:x,lz:z,x,z,tw:null,blink:now()+2000}; }
+function tweenAgent(tx,tz,dur){
+  const a=SC.agent; a.tw={fx:a.x,fz:a.z,tx,tz,t0:now(),dur}; a.lx=tx; a.lz=tz;
+}
+
+function poly(pts,fill,stroke,lw=1.2){
+  g.beginPath(); g.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++) g.lineTo(pts[i][0],pts[i][1]);
+  g.closePath();
+  if(fill){ g.fillStyle=fill; g.fill(); }
+  if(stroke){ g.strokeStyle=stroke; g.lineWidth=lw; g.stroke(); }
+}
+/* кубоїд власного «піксельного» дизайну */
+function cuboid(x,y,z,sx,sy,sz,rgb,alpha=1,px=false,seed=1){
+  g.globalAlpha = alpha;
+  const line='rgba(25,35,60,.38)';
+  poly([P(x,y,z+sz),P(x+sx,y,z+sz),P(x+sx,y+sy,z+sz),P(x,y+sy,z+sz)], sh(rgb,-.08), line);
+  poly([P(x+sx,y,z),P(x+sx,y,z+sz),P(x+sx,y+sy,z+sz),P(x+sx,y+sy,z)], sh(rgb,-.3), line);
+  poly([P(x,y+sy,z),P(x+sx,y+sy,z),P(x+sx,y+sy,z+sz),P(x,y+sy,z+sz)], sh(rgb,.16), line);
+  if(px){
+    const i=.17, Y=y+sy;
+    poly([P(x+sx*i,Y,z+sz*i),P(x+sx*(1-i),Y,z+sz*i),P(x+sx*(1-i),Y,z+sz*(1-i)),P(x+sx*i,Y,z+sz*(1-i))], sh(rgb,.3));
+    const r=rnd(seed), s=.16;
+    for(let k=0;k<3;k++){
+      const a=.1+r()*.62, b=.12+r()*.6, c=.1+r()*.62, d=.12+r()*.6;
+      poly([P(x+a*sx,y+b*sy,z+sz),P(x+(a+s)*sx,y+b*sy,z+sz),P(x+(a+s)*sx,y+(b+s)*sy,z+sz),P(x+a*sx,y+(b+s)*sy,z+sz)], sh(rgb,-.22));
+      poly([P(x+sx,y+d*sy,z+c*sz),P(x+sx,y+d*sy,z+(c+s)*sz),P(x+sx,y+(d+s)*sy,z+(c+s)*sz),P(x+sx,y+(d+s)*sy,z+c*sz)], sh(rgb,-.44));
+    }
+    const a=.25+r()*.4, c=.25+r()*.4;
+    poly([P(x+a*sx,Y,z+c*sz),P(x+(a+s)*sx,Y,z+c*sz),P(x+(a+s)*sx,Y,z+(c+s)*sz),P(x+a*sx,Y,z+(c+s)*sz)], sh(rgb,.45));
+  }
+  g.globalAlpha = 1;
+}
+
+function drawGround(){
+  const {nx,nz}=SC, d=.3;
+  poly([P(0,0,nz),P(nx,0,nz),P(nx,-d,nz),P(0,-d,nz)], '#b5c79f', 'rgba(80,110,60,.35)');
+  poly([P(nx,0,0),P(nx,0,nz),P(nx,-d,nz),P(nx,-d,0)], '#9db386', 'rgba(80,110,60,.35)');
+  for(let i=0;i<nx;i++) for(let j=0;j<nz;j++)
+    poly([P(i,0,j),P(i+1,0,j),P(i+1,0,j+1),P(i,0,j+1)], (i+j)%2?'#d6e7c4':'#e1eed2', 'rgba(110,140,90,.35)');
+}
+
+function drawWire(w){
+  const [a,b,c,d,e,f]=w.b;
+  const C=[[a,b,c],[d,b,c],[d,b,f],[a,b,f],[a,e,c],[d,e,c],[d,e,f],[a,e,f]];
+  const E=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  if(w.floor){ g.globalAlpha=.18; poly([P(a,b+.02,c),P(d,b+.02,c),P(d,b+.02,f),P(a,b+.02,f)], w.c); g.globalAlpha=1; }
+  g.save(); g.lineWidth=3.2; g.strokeStyle=w.c; g.lineCap='round';
+  g.setLineDash(w.dash?[10,8]:[]);
+  for(const [i,j] of E){ const p=P(...C[i]), q=P(...C[j]); g.beginPath(); g.moveTo(p[0],p[1]); g.lineTo(q[0],q[1]); g.stroke(); }
+  g.restore();
+}
+
+function drawAgent(t){
+  const a=SC.agent;
+  if(a.tw){
+    const p=clamp((t-a.tw.t0)/a.tw.dur), e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    a.x=a.tw.fx+(a.tw.tx-a.tw.fx)*e; a.z=a.tw.fz+(a.tw.tz-a.tw.fz)*e;
+    if(p>=1) a.tw=null;
+  }
+  const x=a.x, z=a.z, bob=Math.sin(t/260)*.05;
+  const gy=SC.vox.has(key(Math.round(x),0,Math.round(z)))?1:0;
+  const s=P(x+.5,gy+.01,z+.5), TW=SC.TW;
+  g.fillStyle='rgba(20,30,60,.2)'; g.beginPath(); g.ellipse(s[0],s[1],TW*.42,TW*.21,0,0,Math.PI*2); g.fill();
+  const y=1.15+bob;
+  const j=P(x+.5,y-.04,z+.5);
+  g.fillStyle='rgba(90,230,255,.45)'; g.beginPath(); g.ellipse(j[0],j[1],TW*.26,TW*.12,0,0,Math.PI*2); g.fill();
+  const body=hexRgb('#e2552a');
+  cuboid(x+.17,y,z+.17,.66,.6,.66,body,1,false);
+  // антена
+  const t0=P(x+.5,y+.6,z+.5), t1=P(x+.5,y+.92,z+.5);
+  g.strokeStyle='#5a3a2a'; g.lineWidth=TW*.06; g.beginPath(); g.moveTo(t0[0],t0[1]); g.lineTo(t1[0],t1[1]); g.stroke();
+  g.fillStyle='#ffd23f'; g.beginPath(); g.arc(t1[0],t1[1],TW*.09,0,Math.PI*2); g.fill();
+  g.strokeStyle='#c99a00'; g.lineWidth=1.5; g.stroke();
+  // екран-обличчя на передній (+x) стороні
+  const X=x+.83;
+  poly([P(X,y+.18,z+.26),P(X,y+.18,z+.74),P(X,y+.5,z+.74),P(X,y+.5,z+.26)], '#262a40', 'rgba(0,0,0,.4)');
+  if(t>a.blink+140){ if(t>a.blink+3200) a.blink=t; }
+  const closed = t<a.blink+140 && t>a.blink;
+  g.fillStyle='#62f0ff';
+  for(const ez of [.39,.61]){
+    const e=P(X,y+.34,z+ez);
+    g.beginPath();
+    if(closed) g.ellipse(e[0],e[1],TW*.07,TW*.015,0,0,Math.PI*2); else g.arc(e[0],e[1],TW*.065,0,Math.PI*2);
+    g.fill();
+  }
+  // лампочка на боці (+z)
+  poly([P(x+.4,y+.22,z+.83),P(x+.6,y+.22,z+.83),P(x+.6,y+.42,z+.83),P(x+.4,y+.42,z+.83)], '#ffd23f','rgba(0,0,0,.3)');
+}
+
+function drawAxes(){
+  const o=[70,SC.ch-60], L=46, TW=1;
+  const dirs=[['X','#e04848',[.894,.447]],['Z','#3b7de0',[-.894,.447]],['Y','#1f9e4a',[0,-1]]];
+  g.save(); g.lineWidth=5; g.lineCap='round'; g.font='800 22px Segoe UI, Arial'; g.textAlign='center'; g.textBaseline='middle';
+  for(const [n,c,[dx,dy]] of dirs){
+    const ex=o[0]+dx*L, ey=o[1]+dy*L;
+    g.strokeStyle=c; g.beginPath(); g.moveTo(o[0],o[1]); g.lineTo(ex,ey); g.stroke();
+    g.fillStyle=c; g.fillText(n, o[0]+dx*(L+18), o[1]+dy*(L+18));
+  }
+  g.fillStyle='#2b3a63'; g.beginPath(); g.arc(o[0],o[1],5,0,Math.PI*2); g.fill();
+  g.restore();
+}
+
+function render(){
+  const t=now();
+  g.setTransform(2,0,0,2,0,0);
+  g.clearRect(0,0,SC.cw,SC.ch);
+  drawGround();
+  const items=[], dead=[];
+  for(const [k,v] of SC.vox){
+    if(v.chg && t>=v.chg.at){ v.rgb=v.chg.rgb; v.flash=v.chg.at; v.chg=null; }
+    if(v.die && t>v.die+300){ dead.push(k); continue; }
+    if(t<v.born) continue;
+    items.push({k:v.x+v.y+v.z+v.y*.001, v});
+  }
+  dead.forEach(k=>SC.vox.delete(k));
+  if(SC.agent) items.push({k:SC.agent.x+1+SC.agent.z+.5, agent:true});
+  items.sort((a,b)=>a.k-b.k);
+  for(const it of items){
+    if(it.agent){ drawAgent(t); continue; }
+    const v=it.v;
+    const p=clamp((t-v.born)/240), e=easeOut(p);
+    let a=v.a;
+    if(v.af){ const q=clamp((t-v.af.at)/v.af.dur); a=v.af.from+(v.af.to-v.af.from)*q; if(q>=1){ v.a=v.af.to; v.af=null; } }
+    let s=0, yo=(1-e)*.9; a*=p;
+    if(v.bump && t-v.bump<360) s=.16*Math.sin(Math.PI*(t-v.bump)/360);
+    if(v.die && t>=v.die){ const q=clamp((t-v.die)/300); s=-.5*q; a*=1-q; }
+    cuboid(v.x-s/2, v.y+yo, v.z-s/2, 1+s,1+s,1+s, v.rgb, a, true, v.x*73+v.y*19+v.z*7+3);
+    if(v.flash && t-v.flash<380){ cuboid(v.x,v.y,v.z,1,1,1,[255,255,255],.85*(1-(t-v.flash)/380)); }
+  }
+  for(const w of SC.wires) drawWire(w);
+  SC.floats = SC.floats.filter(f=>t-f.t0<1000);
+  g.textAlign='center'; g.textBaseline='middle';
+  for(const f of SC.floats){
+    const q=(t-f.t0)/1000, p=P(f.x,f.y+q*.8,f.z);
+    g.globalAlpha=1-q*q; g.font=`900 ${Math.max(22,SC.TW*.55)}px Segoe UI, Arial`;
+    g.lineWidth=6; g.strokeStyle='#fff'; g.strokeText(f.text,p[0],p[1]);
+    g.fillStyle=f.color; g.fillText(f.text,p[0],p[1]); g.globalAlpha=1;
+  }
+  if(SC.axes) drawAxes();
+  requestAnimationFrame(render);
+}
+
+/* =========================================================
+   HTML-БЛОКИ MAKECODE
+   ========================================================= */
+const num = (t,d)=>`<span class="num"${d?' data-d':''}>${t}</span>`;
+function fillBlock(color, from, to, diffs=[]){
+  return `<div class="stack"><div class="blk fill multi">
+    <div class="row">заповнити блоками <span class="pick"><i style="--b:${color}"></i></span></div>
+    <div class="row">з <span class="pos">${from.map(v=>num(v)).join('')}</span></div>
+    <div class="row">до <span class="pos">${to.map((v,i)=>num(v,diffs.includes(i))).join('')}</span></div>
+    <div class="row"><span class="drop">замінити ▾</span></div>
+  </div></div>`;
+}
+let opSeq=0;
+const L  = (n,body,d)=>({t:'loop',n,body,d,id:'op'+(opSeq++)});
+const PL = d=>({t:'place',d,id:'op'+(opSeq++)});
+const MV = d=>({t:'move',d,id:'op'+(opSeq++)});
+const NR = d=>({t:'newrow',d,id:'op'+(opSeq++)});
+function nodeHTML(n){
+  const dd = n.d?' data-d':'';
+  if(n.t==='loop') return `<div class="cblk" data-op="${n.id}"${dd}>
+      <div class="blk loop chead">повторити ${num(n.n)} разів<span class="iter"></span></div>
+      <div class="cmid"><div class="arm"></div><div class="inner">${n.body.map(nodeHTML).join('')}</div></div>
+      <div class="cfoot"></div></div>`;
+  if(n.t==='place')  return `<div class="blk agent" data-op="${n.id}"${dd}>агент - розмістити <span class="drop">вниз ▾</span></div>`;
+  if(n.t==='move')   return `<div class="blk agent" data-op="${n.id}"${dd}>агент - переміститися <span class="drop">вперед ▾</span> by ${num(1)}</div>`;
+  if(n.t==='newrow') return `<div class="blk agent" data-op="${n.id}"${dd}>агент - перейти на новий ряд</div>`;
+}
+const progHTML = list=>`<div class="stack">${list.map(nodeHTML).join('')}</div>`;
+
+/* виконання програми Агента з підсвічуванням блоків */
+async function exec(list, root, ops, c){
+  for(const n of list){
+    const el=root.querySelector(`[data-op="${n.id}"]`);
+    if(n.t==='loop'){
+      const head=el.querySelector(':scope > .chead'), badge=head.querySelector('.iter');
+      for(let k=1;k<=n.n;k++){
+        badge.textContent=k+' / '+n.n; badge.classList.add('on');
+        head.classList.add('run'); sfx.pop();
+        await c.w(ops.loopDelay());
+        head.classList.remove('run');
+        await exec(n.body, root, ops, c);
+      }
+      badge.classList.remove('on');
+    } else {
+      el.classList.add('run');
+      await ops[n.t]();
+      el.classList.remove('run');
+    }
+  }
+}
+function agentOps(c, speed, startX, onPlace){
+  return {
+    loopDelay: ()=>speed.loop,
+    place: async ()=>{
+      const a=SC.agent, k=key(a.lx,0,a.lz);
+      if(SC.vox.has(k)){ SC.vox.get(k).bump=now(); addFloat(a.lx+.5,1.6,a.lz+.5,'знову сюди!','#d83b01'); }
+      else addVox(a.lx,0,a.lz,COL.gold,now());
+      sfx.place(); onPlace && onPlace();
+      await c.w(speed.op);
+    },
+    move: async ()=>{ const a=SC.agent; tweenAgent(a.lx+1,a.lz,speed.op*.85); sfx.step(); await c.w(speed.op); },
+    newrow: async ()=>{ const a=SC.agent; tweenAgent(startX,a.lz+1,speed.op*1.6); sfx.step(); await c.w(speed.op*1.8); },
+  };
+}
+/* хвиля появи блоків групами */
+async function build(groups, c, stagger, gap, fn){
+  for(const grp of groups){
+    grp.sort((p,q)=>(p[0]+p[2])-(q[0]+q[2]) || p[0]-q[0]);
+    const t=now();
+    grp.forEach((cell,k)=>{ fn(cell, t+k*stagger); if(k%Math.max(1,Math.round(90/stagger))===0) sfx.place(k*stagger/1000); });
+    await c.w(grp.length*stagger+gap);
+  }
+}
+
+/* =========================================================
+   ПИТАННЯ
+   ========================================================= */
+const Q = [
+{ /* 1. Заповнення */
+  task:'Потрібна рівна підлога 5×5 в один шар. Яка команда її збудує?',
+  think:'Обговоріть! Яка команда збудує підлогу — А, Б чи В?',
+  opts:[
+    {html:fillBlock(COL.dirt,['~0','~0','~0'],['~4','~0','~4']),       tag:'Вийшла рівна підлога 5×5 ✔'},
+    {html:fillBlock(COL.dirt,['~0','~0','~0'],['~4','~4','~0'],[1,2]), tag:'Вийшла стіна 5×5, а не підлога'},
+    {html:fillBlock(COL.dirt,['~0','~0','~0'],['~4','~4','~4'],[1]),   tag:'Вийшов суцільний куб 5×5×5'},
+  ],
+  correct:0,
+  explain:'Середнє число — це висота (Y). Для підлоги висота не змінюється: <b>0</b> і <b>0</b>.',
+  setup(){
+    resetScene(7,7,5); SC.axes=true;
+    SC.wires=[{b:[1,0,1,6,1,6],c:'#3d6fe0',dash:true,floor:true}];
+  },
+  async run(i,c){
+    const R=[0,1,2,3,4], groups=[];
+    if(i===0) R.forEach(z=>groups.push(R.map(x=>[1+x,0,1+z])));
+    if(i===1) R.forEach(y=>groups.push(R.map(x=>[1+x,y,1])));
+    if(i===2) R.forEach(y=>groups.push(R.flatMap(x=>R.map(z=>[1+x,y,1+z]))));
+    await build(groups,c,i===2?14:42,i===2?300:220,([x,y,z],t)=>addVox(x,y,z,COL.dirt,t));
+    await c.w(250);
+  },
+},
+{ /* 2. Режим «замінити» */
+  task:'Що зробить режим «замінити»?',
+  think:'Обговоріть! Що станеться зі старими блоками?',
+  code:fillBlock(COL.blue,['~0','~0','~0'],['~3','~2','~3']),
+  opts:[
+    {html:'<div class="otext">Поставить нові блоки <span data-d>тільки на порожні місця</span>, старі залишить</div>',
+     tag:'Старі блоки залишились на місці'},
+    {html:'<div class="otext">Поставить нові блоки скрізь — і на місце старих теж</div>',
+     tag:'Уся область стала синьою ✔'},
+    {html:'<div class="otext">Збудує <span data-d>лише стінки</span>, а всередині буде <span data-d>порожньо</span></div>',
+     tag:'Порожня коробка: так робить режим «пустота»'},
+  ],
+  diffSel:'#codePanel .drop',
+  correct:1,
+  explain:'«Замінити» ставить нові блоки на місце <b>всіх</b> старих. А порожню коробку робить режим «пустота».',
+  OLD:[[0,0,0,'red'],[0,1,0,'yellow'],[0,2,0,'white'],[3,0,3,'purple'],[3,1,3,'orange'],[3,2,3,'red'],
+       [1,0,3,'yellow'],[1,1,3,'white'],[3,0,1,'orange'],[2,0,1,'purple'],[2,1,1,'red']],
+  setup(){
+    resetScene(6,6,3);
+    this.OLD.forEach(([x,y,z,c])=>addVox(1+x,y,1+z,COL[c],0));
+    SC.wires=[{b:[1,0,1,5,3,5],c:'#3d6fe0',dash:true}];
+  },
+  async run(i,c){
+    const R4=[0,1,2,3], groups=[];
+    for(let y=0;y<3;y++) groups.push(R4.flatMap(x=>R4.map(z=>[x,y,z])));
+    await build(groups,c,30,260,([x,y,z],t)=>{
+      const X=x+1, Z=z+1, old=SC.vox.has(key(X,y,Z));
+      const shell = x===0||x===3||y===0||y===2||z===0||z===3;
+      if(i===0){ if(!old) addVox(X,y,Z,COL.blue,t); }
+      else if(i===1){ old? recolor(X,y,Z,COL.blue,t) : addVox(X,y,Z,COL.blue,t); }
+      else { if(shell) (old? recolor(X,y,Z,COL.blue,t) : addVox(X,y,Z,COL.blue,t)); else if(old) killVox(X,y,Z,t); }
+    });
+    if(i===2){
+      await c.w(250);
+      const t=now();
+      for(const v of SC.vox.values()) if(v.y===2||v.x===4||v.z===4) fadeVox(v,.22,t,700);
+      await c.w(750);
+    }
+    await c.w(200);
+  },
+},
+{ /* 3. Цикл «повторити» */
+  task:'Агент має поставити ряд із 4 блоків. Який код це зробить?',
+  think:'Обговоріть! Який код поставить ряд із 4 блоків?',
+  progs:[
+    [L(4,[PL(),MV()])],
+    [L(4,[MV()]), PL(true)],
+    [L(4,[PL()]), MV(true)],
+  ],
+  tags:['Ряд із 4 блоків ✔','4 кроки — і лише 1 блок у кінці','4 рази на те саме місце — видно 1 блок'],
+  correct:0,
+  explain:'У цикл кладемо <b>все</b>, що має повторюватися: і поставити, і зробити крок.',
+  setup(){
+    resetScene(7,3,2);
+    SC.wires=[{b:[1,0,1,5,1,2],c:'#3d6fe0',dash:true,floor:true}];
+    placeAgent(1,1);
+  },
+  async run(i,c,card){
+    await exec(this.progs[i], card, agentOps(c,{op:480,loop:320},1), c);
+    await c.w(300);
+  },
+},
+{ /* 4. Цикл у циклі */
+  task:'Скільки блоків з’явиться?',
+  think:'Обговоріть! Скільки блоків побудує Агент — 7, 12 чи 4?',
+  prog:[L(3,[L(4,[PL(),MV()]), NR()])],
+  opts:[
+    {html:'<div class="onum">7</div>',  hint:'3 + 4 — так було б, якби цикли стояли один за одним, а не один у одному.'},
+    {html:'<div class="onum">12</div>'},
+    {html:'<div class="onum">4</div>',  hint:'Це лише один ряд. А зовнішній цикл повторює ряди 3 рази.'},
+  ],
+  correct:1,
+  explain:'Внутрішній цикл виконується повністю щоразу, коли повторюється зовнішній: <b>3 ряди по 4 = 12</b>.',
+  setup(){
+    resetScene(6,5,2); placeAgent(1,1);
+    this.count=0; setCounter(0);
+  },
+  async run(i,c){
+    const outer=this.prog[0], inner=outer.body[0];
+    this.opts[0].diffSel=`#codePanel [data-op="${inner.id}"]`;
+    this.opts[2].diffSel=`#codePanel [data-op="${outer.id}"] > .chead`;
+    const speed={op:340,loop:220}; let row=1;
+    const ops=agentOps(c,speed,1,()=>{ this.count++; setCounter(this.count); });
+    const nr=ops.newrow;
+    ops.newrow=async()=>{ await nr(); row++; if(row<=3) addFloat(1.5,1.9,SC.agent.lz+.5,'ряд '+row,'#107c10'); speed.op=200; speed.loop=130; };
+    addFloat(1.5,1.9,1.5,'ряд 1','#107c10');
+    await exec(this.prog, document.getElementById('codePanel'), ops, c);
+    await c.w(250);
+  },
+},
+];
+Q[2].opts = Q[2].progs.map((p,i)=>({html:progHTML(p), tag:Q[2].tags[i]}));
+Q[3].code = progHTML(Q[3].prog);
+Q[3].opts.forEach(o=>o.tag='Блоків: 12 — це 3 ряди по 4');
+Q[3].opts[1].tag+=' ✔';
+
+/* =========================================================
+   КЕРУВАННЯ
+   ========================================================= */
+const $ = id=>document.getElementById(id);
+const stage=$('stage'), elTask=$('task'), elCode=$('codePanel'), elOpts=$('opts'), elFb=$('fb'),
+      elTag=$('tag'), elNext=$('next'), elThink=$('think'), elBubble=$('bubble'), elCounter=$('counter');
+const LET=['А','Б','В'];
+let cur=0, solved=[false,false,false,false], viewSolved=false, busy=false, runTok=0;
+
+function scaleStage(){
+  const s=Math.min(innerWidth/1920, innerHeight/1080);
+  stage.style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+function mkCtx(){
+  const tok=++runTok;
+  return { w: ms=>new Promise((res,rej)=>setTimeout(()=>tok===runTok?res():rej('cancel'),ms)) };
+}
+function setCounter(n){
+  const b=elCounter.querySelector('b'); b.textContent=n;
+  b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
+}
+function setTag(text,cls){ elTag.textContent=text; elTag.className='on '+(cls||''); }
+function hideTag(){ elTag.className=''; }
+function renderStars(pop=-1){
+  $('stars').innerHTML=solved.map((s,i)=>`<span class="star${s?' on':''}${i===cur?' cur':''}${i===pop?' pop':''}">★</span>`).join('');
+}
+function fbIntro(){
+  elFb.innerHTML=`<div class="t">Задача ${cur+1}</div>
+    <div class="muted">Натисніть <b>«🤔 Як думаєте?»</b> і обговоріть.<br>Потім оберіть <b>А</b>, <b>Б</b> чи <b>В</b>.</div>`;
+}
+
+function show(i){
+  runTok++; busy=false; viewSolved=false;
+  cur=Math.max(0,Math.min(4,i));
+  hideBubble();
+  if(cur===4){ showFinal(); return; }
+  $('final').classList.remove('on'); $('quiz').style.display='flex';
+  const q=Q[cur];
+  $('qnum').textContent=`Питання ${cur+1} з 4`;
+  elTask.textContent=q.task;
+  if(q.code){ elCode.style.display='flex'; elCode.innerHTML=`<div class="lbl">Код:</div>${q.code}`; }
+  else { elCode.style.display='none'; elCode.innerHTML=''; }
+  elOpts.className='';
+  elOpts.innerHTML=q.opts.map((o,k)=>`<div class="card" data-i="${k}"><div class="letter">${LET[k]}</div>${o.html}</div>`).join('');
+  elOpts.querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>pick(+c.dataset.i)));
+  elCounter.style.display = cur===3 ? 'block' : 'none';
+  elThink.style.display=''; elThink.classList.remove('used');
+  elNext.style.display = solved[cur] ? 'block' : 'none';
+  elNext.textContent = cur===3 ? 'Фінал ➜' : 'Далі ➜';
+  hideTag(); fbIntro(); renderStars();
+  resizeCanvas(); q.setup();
+}
+
+function clearDiff(){ document.querySelectorAll('.diff').forEach(e=>e.classList.remove('diff')); }
+
+async function pick(i){
+  if(busy || viewSolved) return;
+  const q=Q[cur], o=q.opts[i], cards=[...elOpts.children], card=cards[i];
+  busy=true; hideBubble(); clearDiff(); hideTag(); sfx.click();
+  cards.forEach(c=>c.classList.remove('chosen','shake'));
+  card.classList.add('chosen'); elOpts.className='locked';
+  elFb.innerHTML=`<div class="t">👀 Дивимось…</div><div class="muted">Що побудує варіант <b>${LET[i]}</b>?</div>`;
+  const c=mkCtx();
+  try{
+    q.setup();
+    if(cur===3) q.count=0;
+    await q.run(i,c,card);
+  }catch(e){ if(e==='cancel') return; throw e; }
+  busy=false; elOpts.className='';
+  if(i===q.correct){
+    viewSolved=true;
+    card.classList.remove('wrong'); card.classList.add('correct');
+    cards.forEach((c,k)=>{ if(k!==i) c.classList.add('dim'); });
+    SC.wires.forEach(w=>{ w.c='#1fae5a'; w.dash=false; });
+    setTag(o.tag,'good');
+    const first=!solved[cur]; solved[cur]=true; renderStars(first?cur:-1);
+    sfx.good(); if(first) sfx.star();
+    elFb.innerHTML=`<div class="t good">✅ Так! Суперсила працює!</div><div>${q.explain}</div>`;
+    elThink.style.display='none';
+    elNext.style.display='block';
+  } else {
+    card.classList.add('wrong','shake');
+    card.querySelectorAll('[data-d]').forEach(e=>e.classList.add('diff'));
+    const sel=o.diffSel||q.diffSel; if(sel) document.querySelectorAll(sel).forEach(e=>e.classList.add('diff'));
+    setTag(o.tag,'bad');
+    sfx.bad();
+    elFb.innerHTML=`<div class="t bad">🔍 Вийшло інакше!</div><div>Подивіться, що змінилося.</div>
+      ${o.hint?`<div class="hint">${o.hint}</div>`:''}<div class="soft">Можна обрати ще раз 🙂</div>`;
+  }
+}
+
+function showBubble(){
+  if(busy || viewSolved) return;
+  elBubble.querySelector('.b').innerHTML=`🗣 ${Q[cur].think}<div class="dots"><span>•</span><span>•</span><span>•</span></div>`;
+  elBubble.classList.add('on'); elThink.classList.add('used'); sfx.think();
+  elFb.innerHTML=`<div class="t">🤔 Час подумати</div><div class="muted">Хто скаже, який варіант правильний — і чому?</div>`;
+}
+function hideBubble(){ elBubble.classList.remove('on'); }
+
+const FLIST=[
+  ['<div class="stack"><div class="blk fill">заповнити блоками <span class="pick"><i style="--b:#9a6a3f"></i></span></div></div>','заповнити блоками'],
+  ['<div class="stack"><div class="blk fill">режим <span class="drop">замінити ▾</span></div></div>','режим «замінити»'],
+  ['<div class="stack"><div class="cblk"><div class="blk loop chead">повторити '+num(4)+' разів</div><div class="cmid"><div class="arm"></div><div class="inner" style="min-height:30px"></div></div><div class="cfoot" style="width:120px"></div></div></div>','повторити'],
+  ['<div class="stack"><div class="cblk"><div class="blk loop chead">повторити '+num(3)+'</div><div class="cmid"><div class="arm"></div><div class="inner"><div class="cblk"><div class="blk loop chead">повторити '+num(4)+'</div><div class="cmid"><div class="arm"></div><div class="inner" style="min-height:22px"></div></div><div class="cfoot" style="width:90px;height:20px"></div></div></div></div><div class="cfoot" style="width:120px;height:20px"></div></div></div>','цикл у циклі'],
+];
+function showFinal(){
+  $('quiz').style.display='none'; elCounter.style.display='none';
+  $('qnum').textContent='Фінал'; renderStars();
+  $('final').querySelectorAll('.fstars span').forEach((s,i)=>s.classList.toggle('on',solved[i]));
+  $('flist').innerHTML=FLIST.map(([h,c])=>`<div class="fitem">${h}<div class="cap">${c}</div></div>`).join('');
+  const f=$('final'); f.querySelectorAll('.conf').forEach(e=>e.remove());
+  const cols=Object.values(COL);
+  for(let k=0;k<46;k++){
+    const d=document.createElement('div'); d.className='conf';
+    d.style.left=(Math.random()*100)+'%'; d.style.background=cols[k%cols.length];
+    d.style.animationDuration=(4+Math.random()*4)+'s'; d.style.animationDelay=(-Math.random()*8)+'s';
+    f.appendChild(d);
+  }
+  f.classList.add('on');
+  sfx.win();
+}
+
+/* події */
+elThink.addEventListener('click',showBubble);
+elBubble.addEventListener('click',hideBubble);
+elNext.addEventListener('click',()=>{ sfx.click(); show(cur+1); });
+$('again').addEventListener('click',()=>{ sfx.click(); restart(); });
+$('mute').addEventListener('click',()=>{ muted=!muted; $('mute').textContent=muted?'🔇':'🔊'; if(!muted) sfx.click(); });
+function restart(){ solved=[false,false,false,false]; show(0); }
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  if(e.key==='ArrowRight'){ e.preventDefault(); if(cur<4) show(cur+1); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); if(cur>0) show(cur-1); }
+  else if(e.code==='KeyR'){ e.preventDefault(); restart(); }
+});
+addEventListener('resize',scaleStage);
+
+scaleStage();
+show(0);
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
